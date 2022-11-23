@@ -67,7 +67,6 @@ export class Parallel {
         const callsPipe: Subject<T> = new Subject<T>()
 
         const execution$ = callsPipe.asObservable().pipe(
-            filter((item) => !!item),
             timeout(timeoutTime),
             switchMap(async (item) => {
                 const res = await handler(item as T)
