@@ -1,1 +1,2 @@
-export const TEST = 1;
+export * from './parallel'
+export * from './types'
