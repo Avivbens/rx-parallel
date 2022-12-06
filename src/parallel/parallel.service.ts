@@ -1,5 +1,5 @@
-import { IExecutionOptions, ProcessDirection } from '@models/execution-options.model'
-import { Subject, filter, switchMap, catchError, of, tap, Subscription, timeout, finalize, skip, take } from 'rxjs'
+import { catchError, filter, finalize, of, skip, Subject, Subscription, switchMap, take, tap, timeout } from 'rxjs'
+import { IExecutionOptions, ProcessDirection } from '../models'
 import { buildMergedObject } from '../utils/merge-objects'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
 

@@ -14,12 +14,7 @@
         "declarationMap": true,
         "sourceMap": true,
         "rootDir": "./src",
-        "allowSyntheticDefaultImports": true,
-        "paths": {
-            "@models/*": ["./src/models/*"],
-            "@worker/*": ["./src/worker/*"],
-            "@parallel/*": ["./src/parallel/*"]
-        }
+        "allowSyntheticDefaultImports": true
     },
     "include": ["src"],
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.mock.ts"]
