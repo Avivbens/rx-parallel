@@ -1,4 +1,4 @@
-import { IExecutionOptions } from '../types/execution-options.model'
+import { IExecutionOptions } from '@models/execution-options.model'
 
 export const DEFAULT_EXECUTION_OPTIONS: Required<Omit<IExecutionOptions, 'payload' | 'handler'>> = {
     concurrency: 1,

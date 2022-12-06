@@ -1,6 +1,7 @@
-import { workerData, parentPort } from 'node:worker_threads'
+import { IExecutionOptions } from '@models/execution-options.model'
+import { IWorkerMessage } from '@models/worker-message.model'
+import { parentPort, workerData } from 'node:worker_threads'
 import { Parallel } from '../parallel'
-import { IExecutionOptions, IWorkerMessage } from '../types'
 ;(() => {
     const { workerId, ...options } = workerData as IExecutionOptions & { workerId: number }
 
