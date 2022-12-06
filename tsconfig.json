@@ -17,7 +17,6 @@
         "allowSyntheticDefaultImports": true,
         "paths": {
             "@models/*": ["./src/models/*"],
-            "@utils/*": ["./src/utils/*"],
             "@worker/*": ["./src/worker/*"],
             "@parallel/*": ["./src/parallel/*"]
         }

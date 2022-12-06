@@ -1,6 +1,6 @@
 import { IExecutionOptions, ProcessDirection } from '@models/execution-options.model'
-import { buildMergedObject } from '@utils/merge-objects'
 import { Subject, filter, switchMap, catchError, of, tap, Subscription, timeout, finalize, skip, take } from 'rxjs'
+import { buildMergedObject } from '../utils/merge-objects'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
 export class Parallel {
