@@ -1,5 +1,3 @@
-import { IExecutionOptions, IWorkerMessage } from '../types'
-import { chunksSplit } from '../utils'
 import { Worker } from 'node:worker_threads'
 import {
     BehaviorSubject,
@@ -14,17 +12,20 @@ import {
     take,
     tap,
 } from 'rxjs'
+import { IWorkerMessage } from '../models'
+import { IExecutionWorkerOptions } from '../models/execution-worker-options.model'
+import { chunksSplit } from '../utils/chunks-split'
 
 export class ParallelWorker {
     public static executeWithWorkers<T = unknown, K = unknown>(
         workersAmount: number,
-        options: IExecutionOptions<T, K>,
+        options: Omit<IExecutionWorkerOptions<T, K>, 'workerId'>,
     ): {
         workers: Worker[]
         subscriptions$: Subscription
         progressMap$: BehaviorSubject<Record<number, Omit<IWorkerMessage, 'workerId'>>>
     } {
-        const { payload, onDone } = options
+        const { payload, onDone, ...allowed } = options
         const originalSize: number = payload.length
 
         const subscriptions$ = new Subscription()
@@ -39,11 +40,10 @@ export class ParallelWorker {
             (_, index) =>
                 new Worker('./worker.ts', {
                     workerData: {
-                        ...options,
+                        ...allowed,
                         payload: chunks[index],
-                        onDone: () => {},
                         workerId: index,
-                    } as IExecutionOptions<T, K> & { workerId: number },
+                    } as Omit<IExecutionWorkerOptions<T, K>, 'onDone'>,
                 }),
         )
 
