@@ -1,4 +1,4 @@
-import { Subject, filter, switchMap, catchError, of, tap, Subscription, timeout, finalize, skip, take } from 'rxjs'
+import { Subject, Subscription, filter, finalize, skip, switchMap, take, tap } from 'rxjs'
 import { IExecutionOptions, ProcessDirection } from '../models/execution-options.model'
 import { buildMergedObject } from '../utils'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
@@ -9,8 +9,10 @@ export class Parallel {
      * K - type of handler return value
      */
     public static execute<T = unknown, K = unknown>(options: IExecutionOptions<T, K>): Subscription {
-        const { onDone, onItemDone, onItemFail, handler, timeout, payload, processDirection, concurrency } =
-            buildMergedObject<IExecutionOptions<T, K>, IExecutionOptions<T, K>>(DEFAULT_EXECUTION_OPTIONS, options)
+        const { onDone, onItemDone, onItemFail, handler, payload, processDirection, concurrency } = buildMergedObject<
+            IExecutionOptions<T, K>,
+            IExecutionOptions<T, K>
+        >(DEFAULT_EXECUTION_OPTIONS, options)
 
         const firstItems =
             processDirection === 'fifo'
@@ -34,7 +36,6 @@ export class Parallel {
                 payload,
                 handler,
                 processDirection as ProcessDirection,
-                <number>timeout,
                 onItemDone,
                 onItemFail,
             )
@@ -60,21 +61,19 @@ export class Parallel {
         payload: T[],
         handler: (payload: T) => K | Promise<K>,
         processDirection: ProcessDirection,
-        timeoutTime: number,
         onItemDone?: (item: T, result: K) => void,
         onItemFail?: (error: Error) => void,
     ) {
         const callsPipe: Subject<T> = new Subject<T>()
 
         const execution$ = callsPipe.asObservable().pipe(
-            timeout(timeoutTime),
             switchMap(async (item: T) => {
-                const res = await handler(item)
-                onItemDone?.(item, res)
-            }),
-            catchError((error) => {
-                onItemFail?.(error)
-                return of(null)
+                try {
+                    const res = await handler(item)
+                    onItemDone?.(item, res)
+                } catch (error) {
+                    onItemFail?.(error as Error)
+                }
             }),
             tap(() => {
                 const next = processDirection === 'fifo' ? payload.shift() : payload.pop()

@@ -25,13 +25,6 @@ export interface IExecutionOptions<T = unknown, K = unknown> {
     processDirection?: ProcessDirection
 
     /**
-     * Timeout for each call
-     * @default 0 - no timeout
-     * @example 1000
-     */
-    timeout?: number
-
-    /**
      * Callback for done processing
      */
     onDone?: () => void
