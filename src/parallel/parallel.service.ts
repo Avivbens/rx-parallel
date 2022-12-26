@@ -62,7 +62,7 @@ export class Parallel {
         handler: (payload: T) => K | Promise<K>,
         processDirection: ProcessDirection,
         onItemDone?: (item: T, result: K) => void,
-        onItemFail?: (error: Error) => void,
+        onItemFail?: (item: T, error: Error) => void,
     ) {
         const callsPipe: Subject<T> = new Subject<T>()
 
@@ -72,7 +72,7 @@ export class Parallel {
                     const res = await handler(item)
                     onItemDone?.(item, res)
                 } catch (error) {
-                    onItemFail?.(error as Error)
+                    onItemFail?.(item, error as Error)
                 }
             }),
             tap(() => {
