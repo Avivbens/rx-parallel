@@ -10,7 +10,8 @@
         "test": "jest",
         "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
         "prepare": "husky install || exit 0 && npm run build ",
-        "prepublish": "npm run build"
+        "prepublish": "npm run build",
+        "pre-commit": "pretty-quick --staged"
     },
     "homepage": "https://github.com/Avivbens/rx-parallel",
     "publisher": "Aviv Ben Shahar",
@@ -23,7 +24,6 @@
     "keywords": [
         "rxjs",
         "promise",
-        "rxjs",
         "parallel",
         "multi-threading",
         "threading",
