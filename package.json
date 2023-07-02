@@ -1,6 +1,6 @@
 {
     "name": "rx-parallel",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Package for multi-tasking and parallel processing",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
