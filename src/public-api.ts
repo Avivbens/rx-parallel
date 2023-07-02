@@ -1,2 +1,2 @@
 export * from './parallel'
-export * from './types'
+export * from './models'
