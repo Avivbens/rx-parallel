@@ -8,7 +8,7 @@ export class Parallel {
      * T - type of payload item
      * K - type of handler result item
      */
-    public static execute<T = unknown, K = unknown>(options: IExecutionOptions<T>): Subscription {
+    public static execute<T = unknown, K = unknown>(options: IExecutionOptions<T, K>): Subscription {
         const { onDone, onItemDone, onItemFail, handler, timeout, payload, processDirection, concurrency } =
             buildMergedObject<IExecutionOptions<T, K>, IExecutionOptions<T, K>>(DEFAULT_EXECUTION_OPTIONS, options)
 
