@@ -59,7 +59,7 @@ Mandatory:
 
 -   **concurrency**: The number of concurrent tasks. **By default, it is 1**.
     <br>
-    This means that the tasks will be executed one by one.
+    In this case, it means that the tasks will be executed one by one.
 
 -   **payload**: A payload to be processed. Should be an array.
 

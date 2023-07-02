@@ -1,6 +1,6 @@
+import { merge } from 'lodash'
 import { Subject, Subscription, filter, finalize, skip, switchMap, take, tap } from 'rxjs'
 import { IExecutionOptions, ProcessDirection } from '../models/execution-options.model'
-import { buildMergedObject } from '../utils'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
 export class Parallel {
@@ -9,10 +9,11 @@ export class Parallel {
      * K - type of handler return value
      */
     public static execute<T = unknown, K = unknown>(options: IExecutionOptions<T, K>): Subscription {
-        const { onDone, onItemDone, onItemFail, handler, payload, processDirection, concurrency } = buildMergedObject<
-            IExecutionOptions<T, K>,
+        const { onDone, onItemDone, onItemFail, handler, payload, processDirection, concurrency } = merge<
+            {},
+            Required<Omit<IExecutionOptions, 'payload' | 'handler'>>,
             IExecutionOptions<T, K>
-        >(DEFAULT_EXECUTION_OPTIONS, options)
+        >({}, DEFAULT_EXECUTION_OPTIONS, options)
 
         const firstItems =
             processDirection === 'fifo'
