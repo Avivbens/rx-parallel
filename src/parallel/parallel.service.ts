@@ -6,7 +6,7 @@ import { DEFAULT_EXECUTION_OPTIONS } from './default'
 export class Parallel {
     /**
      * T - type of payload item
-     * K - type of handler result item
+     * K - type of handler return value
      */
     public static execute<T = unknown, K = unknown>(options: IExecutionOptions<T, K>): Subscription {
         const { onDone, onItemDone, onItemFail, handler, timeout, payload, processDirection, concurrency } =
@@ -68,9 +68,9 @@ export class Parallel {
 
         const execution$ = callsPipe.asObservable().pipe(
             timeout(timeoutTime),
-            switchMap(async (item) => {
-                const res = await handler(item as T)
-                onItemDone?.(item as T, res)
+            switchMap(async (item: T) => {
+                const res = await handler(item)
+                onItemDone?.(item, res)
             }),
             catchError((error) => {
                 onItemFail?.(error)
@@ -78,7 +78,7 @@ export class Parallel {
             }),
             tap(() => {
                 const next = processDirection === 'fifo' ? payload.shift() : payload.pop()
-                next ? callsPipe.next(next) : callsPipe.complete()
+                next !== undefined ? callsPipe.next(next) : callsPipe.complete()
             }),
         )
 
