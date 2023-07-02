@@ -34,11 +34,11 @@ export interface IExecutionOptions<T = unknown, K = unknown> {
      * @param item - processed item
      * @param result - result of processing
      */
-    onItemDone?: (item: unknown, result: unknown) => void
+    onItemDone?: (item: T, result: K) => void
 
     /**
      * Callback for each item fail processing
      * @param error - error of processing
      */
-    onItemFail?: (error: Error) => void
+    onItemFail?: (item: T, error: Error) => void
 }
