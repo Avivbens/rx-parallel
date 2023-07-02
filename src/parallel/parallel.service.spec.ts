@@ -3,7 +3,7 @@ import { Parallel } from './parallel.service'
 
 describe('Parallel', () => {
     describe('execute', () => {
-        it('should call onDone at the end', (done) => {
+        it('should call onDone at the end - concurrency is lower then length', (done) => {
             const callFn = jest.fn()
             const failFn = jest.fn()
             const payload = [0, 1, 2, 3]
@@ -14,6 +14,29 @@ describe('Parallel', () => {
                     callFn(item)
                     return new Promise((resolve) => setTimeout(resolve, 5))
                 },
+                concurrency: 2,
+                payload,
+                onItemFail: failFn,
+                onDone: () => {
+                    expect(callFn).toBeCalledTimes(length)
+                    expect(failFn).toBeCalledTimes(0)
+                    done()
+                },
+            })
+        })
+
+        it('should call onDone at the end - concurrency is higher then length', (done) => {
+            const callFn = jest.fn()
+            const failFn = jest.fn()
+            const payload = [0, 1, 2, 3]
+            const length = payload.length
+
+            Parallel.execute({
+                handler: async (item) => {
+                    callFn(item)
+                    return new Promise((resolve) => setTimeout(resolve, 5))
+                },
+                concurrency: 10,
                 payload,
                 onItemFail: failFn,
                 onDone: () => {

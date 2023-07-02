@@ -23,10 +23,12 @@ export class Parallel {
         const executions$: Subscription = new Subscription()
         const isDoneChecker$ = new Subject<boolean>()
 
+        const skipCount: number = concurrency > payload.length ? payload.length : concurrency
+
         isDoneChecker$
             .pipe(
                 filter((isDone) => isDone),
-                skip(<number>concurrency - 1),
+                skip(<number>skipCount - 1),
                 take(1),
                 switchMap(async () => onDone?.()),
             )
