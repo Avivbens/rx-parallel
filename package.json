@@ -31,7 +31,7 @@
     "license": "MIT",
     "dependencies": {
         "lodash": "^4.17.21",
-        "rxjs": "^7.5.5"
+        "rxjs": "^7.8.1"
     },
     "devDependencies": {
         "@types/jest": "^27.4.1",
