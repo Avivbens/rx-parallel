@@ -1,6 +1,6 @@
 import { merge } from 'lodash'
 import { Subject, Subscription, filter, finalize, skip, switchMap, take, tap } from 'rxjs'
-import { IExecutionOptions, ProcessDirection } from '../models/execution-options.model'
+import type { IExecutionOptions, ProcessDirection } from '../models/execution-options.model'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
 export class Parallel {
@@ -10,7 +10,7 @@ export class Parallel {
      */
     public static execute<T = unknown, K = unknown>(options: IExecutionOptions<T, K>): Subscription {
         const { onDone, onItemDone, onItemFail, handler, payload, processDirection, concurrency } = merge<
-            {},
+            object,
             Required<Omit<IExecutionOptions, 'payload' | 'handler'>>,
             IExecutionOptions<T, K>
         >({}, DEFAULT_EXECUTION_OPTIONS, options)
@@ -34,6 +34,7 @@ export class Parallel {
             )
             .subscribe()
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const pipes: Subject<T>[] = firstItems.map((item) => {
             const { execution$, callsPipe } = this._createExecution<T, K>(
                 payload,

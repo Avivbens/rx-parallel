@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Subject, debounceTime, finalize, skip, take, tap } from 'rxjs'
 import { Parallel } from './parallel.service'
 
@@ -73,11 +74,11 @@ describe('Parallel', () => {
             const failFn = jest.fn()
             const payload = Array.from({ length: 1000 }, (_, i) => i)
             const length = payload.length
-            const concurrency: number = 100
+            const concurrency = 100
 
             const checker$ = new Subject()
             const expectedChunksTriggered = length / concurrency
-            let chunksTriggered: number = 0
+            let chunksTriggered = 0
 
             checker$
                 .asObservable()
@@ -119,7 +120,7 @@ describe('Parallel', () => {
             const payload = [0, 1, 2, 3]
             const length = payload.length
 
-            // @ts-ignore
+            // @ts-expect-error
             const { callsPipe, execution$ } = Parallel._createExecution<number, void>(
                 payload,
                 async (p) => {
@@ -156,7 +157,7 @@ describe('Parallel', () => {
             const payload = [0, 1, 2, 3]
             const length = payload.length
 
-            // @ts-ignore
+            // @ts-expect-error
             const { callsPipe, execution$ } = Parallel._createExecution<number, void>(
                 payload,
                 async (p) => {
