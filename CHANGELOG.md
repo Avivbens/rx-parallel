@@ -1,3 +1,11 @@
+## [1.0.4](https://github.com/Avivbens/rx-parallel/compare/v1.0.3...v1.0.4) (2024-01-01)
+
+
+### Bug Fixes
+
+* description of health-check [skip ci] ([3399f4c](https://github.com/Avivbens/rx-parallel/commit/3399f4c21987ab19ade230791c918bb35aa1168b))
+* issue when payload is empty - not calling onDone ([#9](https://github.com/Avivbens/rx-parallel/issues/9)) ([f354c68](https://github.com/Avivbens/rx-parallel/commit/f354c6884149c8435d61c48b5829e7b64192b610))
+
 ## [1.0.3](https://github.com/Avivbens/rx-parallel/compare/v1.0.2...v1.0.3) (2023-12-29)
 
 
