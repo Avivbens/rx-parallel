@@ -93,6 +93,6 @@
         "coverageDirectory": "../coverage",
         "testEnvironment": "node",
         "clearMocks": true,
-        "testTimeout": 10000
+        "testTimeout": 3000
     }
 }

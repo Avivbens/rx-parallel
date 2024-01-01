@@ -5,6 +5,10 @@ import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
 export class Parallel {
     /**
+     * @description Executes handler for each item in payload
+     * @param options - execution options
+     * @returns subscription of the execution
+     *
      * T - type of payload item
      * K - type of handler return value
      */
@@ -15,20 +19,25 @@ export class Parallel {
             IExecutionOptions<T, K>
         >({}, DEFAULT_EXECUTION_OPTIONS, options)
 
+        const limitedConcurrency: number = Math.min(payload.length, concurrency)
+
         const firstItems =
             processDirection === 'fifo'
-                ? payload.splice(0, concurrency)
-                : payload.splice(payload.length - <number>concurrency, concurrency)
+                ? payload.splice(0, limitedConcurrency)
+                : payload.splice(payload.length - limitedConcurrency, limitedConcurrency)
 
         const executions$: Subscription = new Subscription()
         const isDoneChecker$ = new Subject<boolean>()
 
-        const skipCount: number = concurrency > payload.length ? payload.length : concurrency
+        if (limitedConcurrency === 0) {
+            onDone?.()
+            return executions$
+        }
 
         isDoneChecker$
             .pipe(
                 filter((isDone) => isDone),
-                skip(<number>skipCount - 1),
+                skip(limitedConcurrency - 1),
                 take(1),
                 switchMap(async () => onDone?.()),
             )

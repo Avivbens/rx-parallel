@@ -48,6 +48,50 @@ describe('Parallel', () => {
             })
         })
 
+        it('should escape and execute onDone when payload is empty', (done) => {
+            const callFn = jest.fn()
+            const failFn = jest.fn()
+            const payload: any[] = []
+            const length = payload.length
+
+            Parallel.execute({
+                handler: async (item) => {
+                    callFn(item)
+                    return new Promise((resolve) => setTimeout(resolve, 5))
+                },
+                concurrency: 10,
+                payload,
+                onItemFail: failFn,
+                onDone: () => {
+                    expect(callFn).toBeCalledTimes(length)
+                    expect(failFn).toBeCalledTimes(0)
+                    done()
+                },
+            })
+        })
+
+        it('should escape and execute onDone when payload is 1 object', (done) => {
+            const callFn = jest.fn()
+            const failFn = jest.fn()
+            const payload = [1]
+            const length = payload.length
+
+            Parallel.execute({
+                handler: async (item) => {
+                    callFn(item)
+                    return new Promise((resolve) => setTimeout(resolve, 5))
+                },
+                concurrency: 10,
+                payload,
+                onItemFail: failFn,
+                onDone: () => {
+                    expect(callFn).toBeCalledTimes(length)
+                    expect(failFn).toBeCalledTimes(0)
+                    done()
+                },
+            })
+        })
+
         it('should call onItemFail on promise reject', (done) => {
             const callFn = jest.fn()
             const failFn = jest.fn()
