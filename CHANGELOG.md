@@ -1,3 +1,16 @@
+# [2.0.0](https://github.com/Avivbens/rx-parallel/compare/v1.0.4...v2.0.0) (2024-01-20)
+
+
+### Bug Fixes
+
+* **deps:** bump up deps ([e3d51cd](https://github.com/Avivbens/rx-parallel/commit/e3d51cdda5a111d305f255f7cdf45f8ff743df18))
+* **engine:** set ts target to es2021 ([fa8808e](https://github.com/Avivbens/rx-parallel/commit/fa8808e3bf485216afd2e8e368fcfcbc0a95bdf5))
+
+
+### BREAKING CHANGES
+
+* **engine:** drop support for EOL nodejs, now support - version > 16.0.0
+
 ## [1.0.4](https://github.com/Avivbens/rx-parallel/compare/v1.0.3...v1.0.4) (2024-01-01)
 
 
