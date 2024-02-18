@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/Avivbens/rx-parallel/compare/v2.0.0...v2.0.1) (2024-02-18)
+
+
+### Bug Fixes
+
+* removeComments to false for build ([ed284ee](https://github.com/Avivbens/rx-parallel/commit/ed284eea609c6b09f7f45635b51767394ef2b96c))
+
 # [2.0.0](https://github.com/Avivbens/rx-parallel/compare/v1.0.4...v2.0.0) (2024-01-20)
 
 
