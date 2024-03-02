@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/Avivbens/rx-parallel/compare/v2.0.1...v2.0.2) (2024-03-02)
+
+
+### Bug Fixes
+
+* **deps:** resolve vulnerability ([2687cc8](https://github.com/Avivbens/rx-parallel/commit/2687cc81f417e52c4d37c80317824c103a89d252))
+
 ## [2.0.1](https://github.com/Avivbens/rx-parallel/compare/v2.0.0...v2.0.1) (2024-02-18)
 
 
