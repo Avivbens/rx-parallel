@@ -1,5 +1,5 @@
 import type { Observable } from 'rxjs'
-import { Subscription, concatMap, take } from 'rxjs'
+import { Subscription, combineLatest, concatMap, distinctUntilChanged, map, take } from 'rxjs'
 import { Subject, filter, switchMap, tap, BehaviorSubject } from 'rxjs'
 import type { IParallelPullOptions } from '../models/parallel-pull.model'
 import { StoreType } from '../models/store-type.enum'
@@ -8,9 +8,11 @@ import { merge } from 'lodash'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
 export class ParallelPull<T = unknown> {
-    private FORCE_STOP: boolean
+    private FORCE_STOP: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false)
     private readonly mainPull: BehaviorSubject<T[]> = new BehaviorSubject<T[]>([])
-    private readonly idleExecutions: Record<number, boolean> = {}
+    private readonly idleExecutions: BehaviorSubject<Record<number, boolean>> = new BehaviorSubject<
+        Record<number, boolean>
+    >({})
     private executions$: { execution$: Observable<void>; callsPipe: Subject<T> }[]
 
     private readonly subs: Subscription = new Subscription()
@@ -23,6 +25,9 @@ export class ParallelPull<T = unknown> {
         this.createPull(options)
     }
 
+    /**
+     * @description Starts the execution of the tasks.
+     */
     public start(): void {
         this.initTasksInjector(this.options.processDirection || DEFAULT_EXECUTION_OPTIONS.processDirection)
 
@@ -35,17 +40,94 @@ export class ParallelPull<T = unknown> {
         })
     }
 
-    // TODO - implement
+    /**
+     * @description Stops the execution of the tasks. The tasks that are currently running will be revoked.
+     * Queued tasks will not be affected.
+     */
     public stop(): void {
-        this.FORCE_STOP = true
+        this.FORCE_STOP.next(true)
     }
 
+    /**
+     * @description Resumes the execution of the tasks. If the queue is not stopped, it will not have any effect.
+     */
+    public resume(): void {
+        this.FORCE_STOP.next(false)
+    }
+
+    /**
+     * @description Adds a new task / tasks to the queue.
+     * @param payload - The payload to add to the queue. It can be a single item or an array of items.
+     */
     public add(payload: T[] | T): void {
         const tasksToAdd = Array.isArray(payload) ? payload : [payload]
         const exists = this.mainPull.getValue()
 
         const res = [...exists, ...tasksToAdd]
         this.mainPull.next(res)
+    }
+
+    /**
+     * @description Removes all the tasks from the queue. The tasks that are currently running will be resolved.
+     */
+    public drain(): void {
+        this.mainPull.next([])
+    }
+
+    /**
+     * @description Closes the queue. The tasks that are currently running will be resolved.
+     * Removes all the tasks from the queue.
+     */
+    public close(): void {
+        this.drain()
+        this.idleExecutions
+            .asObservable()
+            .pipe(
+                filter((idle) => Object.values(idle).every((value: boolean) => value)),
+                take(1),
+                tap(() => {
+                    this.subs.unsubscribe()
+                }),
+            )
+            .subscribe()
+    }
+
+    /**
+     * @description Returns true if the queue is running.
+     */
+    public get isRunning(): boolean {
+        return !this.subs.closed
+    }
+
+    /**
+     * @description Returns true if the queue is empty.
+     */
+    public get isDrained(): boolean {
+        return this.mainPull.getValue().length === 0
+    }
+
+    /**
+     * @description Returns true if the queue is closed.
+     */
+    public get isClosed(): boolean {
+        return this.subs.closed
+    }
+
+    /**
+     * @description Returns true if the queue is idle.
+     */
+    public get isIdle(): boolean {
+        return Object.values(this.idleExecutions.getValue()).every((value: boolean) => value)
+    }
+
+    /**
+     * @description Returns an observable that emits when the pull idle status changes.
+     */
+    public get onIdleChanged(): Observable<boolean> {
+        return this.idleExecutions.asObservable().pipe(
+            map((idleMap) => Object.values(idleMap).every((value: boolean) => value)),
+            distinctUntilChanged(),
+        )
     }
 
     private createPull(options: IParallelPullOptions<T>): void {
@@ -57,7 +139,7 @@ export class ParallelPull<T = unknown> {
         >({}, DEFAULT_EXECUTION_OPTIONS, options)
 
         const executions$ = Array.from({ length: concurrency }, (_, index) => {
-            this.idleExecutions[index] = true
+            this.idleExecutions.next({ ...this.idleExecutions.getValue(), [index]: true })
             const execution$ = this.createExecution(handler, index, onItemDone, onItemFail)
             return execution$
         })
@@ -74,13 +156,13 @@ export class ParallelPull<T = unknown> {
     }
 
     private initTasksInjector(processDirection: ProcessDirection): void {
-        this.tasksInjector
+        const sub = this.tasksInjector
             .pipe(
                 concatMap((injectToIndex) =>
-                    this.mainPull.pipe(
-                        filter((items) => items.length > 0),
+                    combineLatest([this.mainPull, this.FORCE_STOP]).pipe(
+                        filter(([items, forceStop]) => items.length > 0 && !forceStop),
                         take(1),
-                        tap((items) => {
+                        tap(([items]) => {
                             const toInject = processDirection === 'fifo' ? items.shift() : items.pop()
                             if (toInject === undefined) {
                                 return
@@ -88,12 +170,14 @@ export class ParallelPull<T = unknown> {
 
                             this.mainPull.next(items)
                             this.executions$[injectToIndex].callsPipe.next(toInject)
-                            this.idleExecutions[injectToIndex] = false
+                            this.idleExecutions.next({ ...this.idleExecutions.getValue(), [injectToIndex]: false })
                         }),
                     ),
                 ),
             )
             .subscribe()
+
+        this.subs.add(sub)
     }
 
     private createExecution<T = unknown, K = unknown>(
@@ -115,7 +199,7 @@ export class ParallelPull<T = unknown> {
             }),
             tap(() => {
                 this.tasksInjector.next(index)
-                this.idleExecutions[index] = true
+                this.idleExecutions.next({ ...this.idleExecutions.getValue(), [index]: true })
             }),
         )
 
