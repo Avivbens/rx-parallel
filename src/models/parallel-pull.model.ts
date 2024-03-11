@@ -1,16 +1,11 @@
 import type { ProcessDirection } from './process-direction.model'
+import type { StoreType } from './store-type.enum'
 
-export interface IExecutionOptions<T = unknown, K = unknown> {
+export type IParallelPullOptions<T = unknown, K = unknown> = (WithRedisOptions | WithInMemoryOptions<T>) & {
     /**
-     * Number of concurrent calls
-     * @default 1
+     * Number of concurrent calls in the pull
      */
-    concurrency?: number
-
-    /**
-     * Payload to be processed
-     */
-    payload: T[]
+    concurrency: number
 
     /**
      * Callback to be called when each item is been processed - the process itself
@@ -25,11 +20,6 @@ export interface IExecutionOptions<T = unknown, K = unknown> {
     processDirection?: ProcessDirection
 
     /**
-     * Callback for done processing
-     */
-    onDone?: () => void
-
-    /**
      * Callback for each item done processing
      * @param item - processed item
      * @param result - result of processing
@@ -41,4 +31,21 @@ export interface IExecutionOptions<T = unknown, K = unknown> {
      * @param error - error of processing
      */
     onItemFail?: (item: T, error: Error) => void
+}
+
+interface WithRedisOptions {
+    /**
+     * Where to store and fetch the pull from.
+     * @default StoreType.IN_MEMORY
+     */
+    storeType: StoreType.REDIS
+}
+
+interface WithInMemoryOptions<T = unknown> {
+    storeType?: StoreType.IN_MEMORY
+
+    /**
+     * Initial value in the pull to consume
+     */
+    initialPull?: T[]
 }
