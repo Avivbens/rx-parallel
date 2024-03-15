@@ -35,7 +35,7 @@ export class ParallelPull<T = unknown> {
      * @description Starts the execution of the tasks.
      */
     public start(): void {
-        this.initTasksInjector(this.options.processDirection || DEFAULT_EXECUTION_OPTIONS.processDirection)
+        this.initTasksInjector()
 
         const { concurrency } = this.options
         Array.from({ length: concurrency }).forEach((_, index) => {
@@ -159,7 +159,9 @@ export class ParallelPull<T = unknown> {
         }
     }
 
-    private initTasksInjector(processDirection: ProcessDirection): void {
+    private initTasksInjector(): void {
+        const { processDirection } = this.options
+
         const sub = this.tasksInjector
             .pipe(
                 concatMap((injectToIndex) =>
