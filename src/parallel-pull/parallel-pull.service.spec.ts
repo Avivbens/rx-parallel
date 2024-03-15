@@ -1,233 +1,318 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { Subject, debounceTime, finalize, skip, take, tap } from 'rxjs'
+import { setTimeout as setTimeoutPrm } from 'node:timers/promises'
+import { debounceTime, filter, tap } from 'rxjs'
+import { StoreType } from '../models'
 import { ParallelPull } from './parallel-pull.service'
 
 describe('ParallelPull', () => {
-    describe('execute', () => {
-        it('should call onDone at the end - concurrency is lower then length', (done) => {
-            const callFn = jest.fn()
-            const failFn = jest.fn()
-            const payload = [0, 1, 2, 3]
-            const length = payload.length
+    beforeEach(() => {
+        jest.resetAllMocks()
+        jest.clearAllMocks()
+    })
 
-            ParallelPull.execute({
-                handler: async (item) => {
-                    callFn(item)
-                    return new Promise((resolve) => setTimeout(resolve, 5))
-                },
-                concurrency: 2,
-                payload,
-                onItemFail: failFn,
-                onDone: () => {
-                    expect(callFn).toBeCalledTimes(length)
-                    expect(failFn).toBeCalledTimes(0)
-                    done()
-                },
+    describe('start', () => {
+        it('should keep the pull alive after done with tasks, process more tasks and then close', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<typeof spy>({
+                concurrency: 3,
+                handler: spy,
+            })
+
+            instance.start()
+
+            const payload1 = Array.from({ length: 100 }, () => spy)
+            instance.add(payload1)
+
+            setTimeout(() => {
+                const payload2 = Array.from({ length: 80 }, () => spy)
+                instance.add(payload2)
+            }, 1000)
+
+            expectHelper(instance, () => {
+                expect(spy).toBeCalledTimes(180)
+                done()
             })
         })
 
-        it('should call onDone at the end - concurrency is higher then length', (done) => {
-            const callFn = jest.fn()
-            const failFn = jest.fn()
-            const payload = [0, 1, 2, 3]
-            const length = payload.length
+        it('should check the order of the calls - fifo', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number>({
+                concurrency: 3,
+                processDirection: 'fifo',
+                handler: spy,
+            })
 
-            ParallelPull.execute({
-                handler: async (item) => {
-                    callFn(item)
-                    return new Promise((resolve) => setTimeout(resolve, 5))
-                },
+            instance.start()
+
+            const payload1 = Array.from({ length: 100 }, (_, index) => index)
+            instance.add(payload1)
+
+            const payload2 = Array.from({ length: 80 }, (_, index) => 100 + index)
+            instance.add(payload2)
+
+            expectHelper(instance, () => {
+                expect(spy).toBeCalledTimes(180)
+                const calledWithParams = spy.mock.calls.map(([param]) => param)
+                const expected = [...payload1, ...payload2]
+
+                expect(calledWithParams).toEqual(expected)
+
+                done()
+            })
+        })
+
+        it('should check the order of the calls - lifo', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number>({
                 concurrency: 10,
-                payload,
-                onItemFail: failFn,
-                onDone: () => {
-                    expect(callFn).toBeCalledTimes(length)
-                    expect(failFn).toBeCalledTimes(0)
-                    done()
-                },
+                processDirection: 'lifo',
+                handler: spy,
+            })
+
+            instance.start()
+
+            const payload1 = Array.from({ length: 100 }, (_, index) => index)
+            instance.add(payload1)
+
+            const payload2 = Array.from({ length: 80 }, (_, index) => 100 + index)
+            setTimeout(() => {
+                instance.add(payload2)
+            }, 1000)
+
+            expectHelper(instance, () => {
+                expect(spy).toBeCalledTimes(180)
+                const calledWithParams = spy.mock.calls.map(([param]) => param)
+                const expected = [...payload1.reverse(), ...payload2.reverse()]
+
+                expect(calledWithParams).toEqual(expected)
+
+                done()
             })
         })
 
-        it('should escape and execute onDone when payload is empty', (done) => {
-            const callFn = jest.fn()
-            const failFn = jest.fn()
-            const payload: any[] = []
-            const length = payload.length
-
-            ParallelPull.execute({
-                handler: async (item) => {
-                    callFn(item)
-                    return new Promise((resolve) => setTimeout(resolve, 5))
-                },
+        it('should handle undefined values over the queue, ignore them and keep process the pull', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number | undefined>({
                 concurrency: 10,
-                payload,
-                onItemFail: failFn,
-                onDone: () => {
-                    expect(callFn).toBeCalledTimes(length)
-                    expect(failFn).toBeCalledTimes(0)
-                    done()
-                },
+                handler: spy,
             })
-        })
 
-        it('should escape and execute onDone when payload is 1 object', (done) => {
-            const callFn = jest.fn()
-            const failFn = jest.fn()
-            const payload = [1]
-            const length = payload.length
+            instance.start()
 
-            ParallelPull.execute({
-                handler: async (item) => {
-                    callFn(item)
-                    return new Promise((resolve) => setTimeout(resolve, 5))
-                },
-                concurrency: 10,
-                payload,
-                onItemFail: failFn,
-                onDone: () => {
-                    expect(callFn).toBeCalledTimes(length)
-                    expect(failFn).toBeCalledTimes(0)
-                    done()
-                },
-            })
-        })
+            const payload1 = Array.from({ length: 100 }, (_, index) => index)
+            const payload2 = Array.from({ length: 80 }, () => undefined)
 
-        it('should call onItemFail on promise reject', (done) => {
-            const callFn = jest.fn()
-            const failFn = jest.fn()
-            const payload = [0, 1, 2, 3]
-            const length = payload.length
+            const combinedPayload = [...payload1, ...payload2]
+            const shuffledPayload = combinedPayload.sort(() => Math.random() - 0.5)
+            instance.add(shuffledPayload)
 
-            ParallelPull.execute({
-                handler: async (item) => {
-                    callFn(item)
-                    return new Promise((_, reject) => setTimeout(reject, 5))
-                },
-                payload,
-                onItemFail: failFn,
-                onDone: () => {
-                    expect(callFn).toBeCalledTimes(length)
-                    expect(failFn).toBeCalledTimes(length)
-                    done()
-                },
-            })
-        })
-
-        it('should setup 100 items parallelPull', (done) => {
-            const callFn = jest.fn()
-            const failFn = jest.fn()
-            const payload = Array.from({ length: 1000 }, (_, i) => i)
-            const length = payload.length
-            const concurrency = 100
-
-            const checker$ = new Subject()
-            const expectedChunksTriggered = length / concurrency
-            let chunksTriggered = 0
-
-            checker$
-                .asObservable()
-                .pipe(
-                    debounceTime(10),
-                    tap(() => {
-                        chunksTriggered++
-                    }),
-                    skip(expectedChunksTriggered - 1),
-                    take(1),
-                )
-                .subscribe()
-
-            ParallelPull.execute({
-                concurrency,
-                handler: async (item) => {
-                    callFn(item)
-                    checker$.next(item)
-                    await new Promise((resolve) => setTimeout(resolve, 50))
-                },
-                payload,
-                onItemFail: failFn,
-                onDone: () => {
-                    expect(callFn).toBeCalledTimes(length)
-                    expect(chunksTriggered).toEqual(expectedChunksTriggered)
-                    expect(failFn).toBeCalledTimes(0)
-                    done()
-                },
+            expectHelper(instance, () => {
+                expect(spy).toBeCalledTimes(payload1.length)
+                done()
             })
         })
     })
 
-    describe('_createExecution', () => {
-        it('should call as times as payload, call complete', (done) => {
-            const failFn = jest.fn()
-            const callFn = jest.fn()
-            const doneFn = jest.fn()
-
-            const payload = [0, 1, 2, 3]
-            const length = payload.length
-
-            // @ts-expect-error
-            const { callsPipe, execution$ } = ParallelPull._createExecution<number, void>(
-                payload,
-                async (p) => {
-                    callFn(p)
-                    return new Promise((resolve) => setTimeout(resolve, 5))
+    describe('stop - resume', () => {
+        it('should stop the current queue, keeping all queue as is', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number>({
+                concurrency: 10,
+                handler: async (number) => {
+                    await setTimeoutPrm(100)
+                    spy(number)
                 },
-                'fifo',
-                doneFn,
-                failFn,
-            )
+            })
 
-            jest.spyOn(callsPipe, 'complete')
+            instance.start()
 
-            execution$
-                .pipe(
-                    finalize(() => {
-                        expect(callFn).toBeCalledTimes(length)
-                        expect(doneFn).toBeCalledTimes(length)
-                        expect(failFn).toBeCalledTimes(0)
-                        expect(callsPipe.complete).toBeCalledTimes(1)
-                        done()
-                    }),
-                )
-                .subscribe()
+            const payloadLength = 150
+            const payload1 = Array.from({ length: payloadLength }, (_, index) => index)
+            instance.add(payload1)
 
-            callsPipe.next(payload.shift() as number)
+            setTimeout(() => {
+                instance.stop()
+
+                const called = spy.mock.calls.length
+                expect(called).toBeLessThan(payloadLength)
+
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                expect(instance.mainPull.getValue().length).toBeGreaterThan(0)
+
+                done()
+            }, 1000)
         })
 
-        it('should call onFail for promise reject', (done) => {
-            const failFn = jest.fn()
-            const callFn = jest.fn()
-            const doneFn = jest.fn()
-
-            const payload = [0, 1, 2, 3]
-            const length = payload.length
-
-            // @ts-expect-error
-            const { callsPipe, execution$ } = ParallelPull._createExecution<number, void>(
-                payload,
-                async (p) => {
-                    callFn(p)
-                    return new Promise((_, reject) => setTimeout(reject, 5))
+        it('should stop the current queue, and resume - queue still exists', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number>({
+                concurrency: 10,
+                handler: async (number) => {
+                    await setTimeoutPrm(100)
+                    spy(number)
                 },
-                'fifo',
-                doneFn,
-                failFn,
-            )
+            })
 
-            jest.spyOn(callsPipe, 'complete')
+            instance.start()
 
-            execution$
-                .pipe(
-                    finalize(() => {
-                        expect(callFn).toBeCalledTimes(length)
-                        expect(failFn).toBeCalledTimes(length)
-                        expect(doneFn).toBeCalledTimes(0)
-                        expect(callsPipe.complete).toBeCalledTimes(1)
-                        done()
-                    }),
-                )
-                .subscribe()
+            const payloadLength = 150
+            const payload1 = Array.from({ length: payloadLength }, (_, index) => index)
+            instance.add(payload1)
 
-            callsPipe.next(payload.shift() as number)
+            setTimeout(() => {
+                instance.stop()
+            }, 300)
+
+            setTimeout(() => {
+                instance.resume()
+            }, 600)
+
+            expectHelper(instance, () => {
+                const called = spy.mock.calls.length
+                expect(called).toBe(payloadLength)
+
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                expect(instance.mainPull.getValue().length).toBe(0)
+
+                done()
+            })
+        })
+    })
+
+    describe('add', () => {
+        it('should add the payload to the queue', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number>({
+                concurrency: 10,
+                handler: spy,
+            })
+
+            instance.start()
+
+            const payloadLength = 150
+            const payload1 = Array.from({ length: payloadLength }, (_, index) => index)
+            instance.add(payload1)
+
+            expectHelper(instance, () => {
+                expect(spy).toBeCalledTimes(payloadLength)
+                done()
+            })
+        })
+
+        it('should add the payload to the existing initial pull', (done) => {
+            const spy = jest.fn()
+            const payloadLength = 150
+
+            const initialPull = Array.from({ length: payloadLength }, (_, index) => index)
+            const instance = new ParallelPull<number>({
+                concurrency: 10,
+                handler: spy,
+                processDirection: 'fifo',
+                storeOptions: {
+                    storeType: StoreType.IN_MEMORY,
+                    initialPull,
+                },
+            })
+
+            instance.start()
+
+            const payload1 = Array.from({ length: payloadLength }, (_, index) => index)
+            instance.add(payload1)
+
+            expectHelper(instance, () => {
+                expect(spy).toBeCalledTimes(payloadLength * 2)
+                done()
+            })
+        })
+    })
+
+    describe('drain', () => {
+        it('should drain the queue', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number>({
+                concurrency: 5,
+                handler: async () => {
+                    await setTimeoutPrm(100)
+                    spy()
+                },
+            })
+
+            instance.start()
+
+            const payloadLength = 150
+            const payload1 = Array.from({ length: payloadLength }, (_, index) => index)
+            instance.add(payload1)
+
+            setTimeout(() => {
+                instance.drain()
+            }, 1000)
+
+            expectHelper(instance, () => {
+                const calls = spy.mock.calls.length
+                expect(calls).toBeLessThan(payloadLength)
+                expect(calls).toBeGreaterThan(0)
+
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                expect(instance.mainPull.getValue().length).toEqual(0)
+                done()
+            })
+        })
+    })
+
+    describe('close', () => {
+        it('should close the queue', (done) => {
+            const spy = jest.fn()
+            const instance = new ParallelPull<number>({
+                concurrency: 5,
+                handler: async () => {
+                    await setTimeoutPrm(100)
+                    spy()
+                },
+            })
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            jest.spyOn(instance.subs, 'unsubscribe')
+            jest.spyOn(instance, 'drain')
+
+            instance.start()
+
+            const payloadLength = 150
+            const payload1 = Array.from({ length: payloadLength }, (_, index) => index)
+            instance.add(payload1)
+
+            setTimeout(() => {
+                instance.close()
+            }, 1000)
+
+            expectHelper(instance, () => {
+                expect(instance.drain).toBeCalledTimes(1)
+
+                const calls = spy.mock.calls.length
+                expect(calls).toBeLessThan(payloadLength)
+                expect(calls).toBeGreaterThan(0)
+
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                expect(instance.subs.unsubscribe).toBeCalledTimes(1)
+
+                done()
+            })
         })
     })
 })
+
+function expectHelper(instance: ParallelPull<any>, check: () => void) {
+    const sub = instance.onIdleChanged
+        .pipe(
+            debounceTime(2000),
+            filter((idle) => idle),
+            tap(() => {
+                check()
+                sub.unsubscribe()
+            }),
+        )
+        .subscribe()
+}
