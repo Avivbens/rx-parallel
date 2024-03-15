@@ -1,10 +1,10 @@
+import { merge } from 'lodash'
 import type { Observable } from 'rxjs'
 import { Subscription, combineLatest, concatMap, distinctUntilChanged, map, take } from 'rxjs'
-import { Subject, filter, switchMap, tap, BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, Subject, filter, switchMap, tap } from 'rxjs'
 import type { IParallelPullOptions } from '../models/parallel-pull.model'
-import { StoreType } from '../models/store-type.enum'
 import type { ProcessDirection } from '../models/process-direction.model'
-import { merge } from 'lodash'
+import { StoreType } from '../models/store-type.enum'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
 export class ParallelPull<T = unknown> {

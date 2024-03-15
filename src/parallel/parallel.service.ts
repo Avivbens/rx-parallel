@@ -1,8 +1,8 @@
 import { merge } from 'lodash'
 import { Subject, Subscription, filter, finalize, skip, switchMap, take, tap } from 'rxjs'
 import type { IExecutionOptions } from '../models/execution-options.model'
-import { DEFAULT_EXECUTION_OPTIONS } from './default'
 import type { ProcessDirection } from '../models/process-direction.model'
+import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
 export class Parallel {
     /**
