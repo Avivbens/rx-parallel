@@ -1,7 +1,7 @@
 import type { ProcessDirection } from './process-direction.model'
 import type { StoreType } from './store-type.enum'
 
-export type IParallelPullOptions<T = unknown, K = unknown> = (WithRedisOptions | WithInMemoryOptions<T>) & {
+export interface IParallelPullOptions<T = unknown, K = unknown> {
     /**
      * Number of concurrent calls in the pull
      */
@@ -14,10 +14,22 @@ export type IParallelPullOptions<T = unknown, K = unknown> = (WithRedisOptions |
     handler: (item: T) => K | Promise<K>
 
     /**
+     * Options for how the pull will be stored
+     * @default { storeType: StoreType.IN_MEMORY }
+     */
+    storeOptions?: IStoreOptions<T>
+
+    /**
      * Which direction to process the payload
      * @default 'fifo'
      */
     processDirection?: ProcessDirection
+
+    /**
+     * If true, the pull will consume all the items in the pull, even if an item is undefined
+     * @default false
+     */
+    allowUndefinedItems?: boolean
 
     /**
      * Callback for each item done processing
@@ -33,6 +45,8 @@ export type IParallelPullOptions<T = unknown, K = unknown> = (WithRedisOptions |
     onItemFail?: (item: T, error: Error) => void
 }
 
+type IStoreOptions<T> = WithRedisOptions | WithInMemoryOptions<T>
+
 interface WithRedisOptions {
     /**
      * Where to store and fetch the pull from.
@@ -42,7 +56,11 @@ interface WithRedisOptions {
 }
 
 interface WithInMemoryOptions<T = unknown> {
-    storeType?: StoreType.IN_MEMORY
+    /**
+     * Where to store and fetch the pull from.
+     * @default StoreType.IN_MEMORY
+     */
+    storeType: StoreType.IN_MEMORY
 
     /**
      * Initial value in the pull to consume

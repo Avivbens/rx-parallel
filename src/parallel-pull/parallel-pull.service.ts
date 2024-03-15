@@ -19,10 +19,16 @@ export class ParallelPull<T = unknown> {
 
     private readonly tasksInjector: Subject<number> = new Subject<number>()
 
-    private readonly options: IParallelPullOptions<T>
+    private readonly options: Required<IParallelPullOptions<T>>
     constructor(options: IParallelPullOptions<T>) {
-        this.options = options
-        this.createPull(options)
+        const parsedOptions = merge<
+            object,
+            Required<Omit<IParallelPullOptions, 'concurrency' | 'handler'>>,
+            IParallelPullOptions<T>
+        >({}, DEFAULT_EXECUTION_OPTIONS, options)
+
+        this.options = parsedOptions
+        this.createPull()
     }
 
     /**
@@ -130,13 +136,8 @@ export class ParallelPull<T = unknown> {
         )
     }
 
-    private createPull(options: IParallelPullOptions<T>): void {
-        const { storeOptions } = options
-        const { concurrency, onItemDone, onItemFail, handler } = merge<
-            object,
-            Required<Omit<IParallelPullOptions, 'concurrency' | 'handler'>>,
-            IParallelPullOptions<T>
-        >({}, DEFAULT_EXECUTION_OPTIONS, options)
+    private createPull(): void {
+        const { concurrency, onItemDone, onItemFail, handler, storeOptions } = this.options
 
         const executions$ = Array.from({ length: concurrency }, (_, index) => {
             this.idleExecutions.next({ ...this.idleExecutions.getValue(), [index]: true })
@@ -149,7 +150,7 @@ export class ParallelPull<T = unknown> {
         /**
          * If the store type is in memory, we will inject the initial pull to the main pull
          */
-        if (storeOptions?.storeType === StoreType.IN_MEMORY) {
+        if (storeOptions.storeType === StoreType.IN_MEMORY) {
             const { initialPull } = storeOptions
 
             if (initialPull?.length) {
@@ -168,12 +169,12 @@ export class ParallelPull<T = unknown> {
                         tap(([items]) => {
                             const toInject = processDirection === 'fifo' ? items.shift() : items.pop()
                             this.mainPull.next(items)
-                            if (toInject === undefined) {
+                            if (toInject === undefined && !this.options.allowUndefinedItems) {
                                 this.tasksInjector.next(injectToIndex)
                                 return
                             }
 
-                            this.executions$[injectToIndex].callsPipe.next(toInject)
+                            this.executions$[injectToIndex].callsPipe.next(toInject as T)
                             this.idleExecutions.next({ ...this.idleExecutions.getValue(), [injectToIndex]: false })
                         }),
                     ),
