@@ -41,7 +41,7 @@ export class ParallelPull<T = unknown> {
     }
 
     /**
-     * @description Stops the execution of the tasks. The tasks that are currently running will be revoked.
+     * @description Stops the execution of the tasks. The tasks that are currently running will be resolved.
      * Queued tasks will not be affected.
      */
     public stop(): void {
@@ -131,7 +131,7 @@ export class ParallelPull<T = unknown> {
     }
 
     private createPull(options: IParallelPullOptions<T>): void {
-        const { storeType } = options
+        const { storeOptions } = options
         const { concurrency, onItemDone, onItemFail, handler } = merge<
             object,
             Required<Omit<IParallelPullOptions, 'concurrency' | 'handler'>>,
@@ -146,8 +146,11 @@ export class ParallelPull<T = unknown> {
 
         this.executions$ = executions$
 
-        if (!storeType || storeType === StoreType.IN_MEMORY) {
-            const { initialPull } = options
+        /**
+         * If the store type is in memory, we will inject the initial pull to the main pull
+         */
+        if (storeOptions?.storeType === StoreType.IN_MEMORY) {
+            const { initialPull } = storeOptions
 
             if (initialPull?.length) {
                 this.mainPull.next(initialPull)
@@ -164,11 +167,12 @@ export class ParallelPull<T = unknown> {
                         take(1),
                         tap(([items]) => {
                             const toInject = processDirection === 'fifo' ? items.shift() : items.pop()
+                            this.mainPull.next(items)
                             if (toInject === undefined) {
+                                this.tasksInjector.next(injectToIndex)
                                 return
                             }
 
-                            this.mainPull.next(items)
                             this.executions$[injectToIndex].callsPipe.next(toInject)
                             this.idleExecutions.next({ ...this.idleExecutions.getValue(), [injectToIndex]: false })
                         }),
