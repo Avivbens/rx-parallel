@@ -3,7 +3,6 @@ import type { Observable } from 'rxjs'
 import { Subscription, combineLatest, concatMap, distinctUntilChanged, map, take } from 'rxjs'
 import { BehaviorSubject, Subject, filter, switchMap, tap } from 'rxjs'
 import type { IParallelPullOptions } from '../models/parallel-pull.model'
-import type { ProcessDirection } from '../models/process-direction.model'
 import { StoreType } from '../models/store-type.enum'
 import { DEFAULT_EXECUTION_OPTIONS } from './default'
 
@@ -136,6 +135,9 @@ export class ParallelPull<T = unknown> {
         )
     }
 
+    /**
+     * @description Create pull by options, and inject the initial pull if the store type is in memory.
+     */
     private createPull(): void {
         const { concurrency, onItemDone, onItemFail, handler, storeOptions } = this.options
 
@@ -159,6 +161,13 @@ export class ParallelPull<T = unknown> {
         }
     }
 
+    /**
+     * @description Initializes the tasks injector.
+     *
+     * The tasks injector is responsible for injecting the tasks from the main pull, and inject them into the executions.
+     *
+     * It will also take care of the process direction.
+     */
     private initTasksInjector(): void {
         const { processDirection } = this.options
 

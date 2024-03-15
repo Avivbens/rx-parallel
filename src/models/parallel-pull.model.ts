@@ -40,6 +40,7 @@ export interface IParallelPullOptions<T = unknown, K = unknown> {
 
     /**
      * Callback for each item fail processing
+     * @param item - processed item
      * @param error - error of processing
      */
     onItemFail?: (item: T, error: Error) => void
