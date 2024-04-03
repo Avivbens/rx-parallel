@@ -54,6 +54,7 @@ module.exports = {
             extends: ['plugin:jsonc/recommended-with-jsonc'],
             rules: {
                 'deprecation/deprecation': 'off',
+                '@typescript-eslint/consistent-type-imports': 'off',
             },
         },
     ],
