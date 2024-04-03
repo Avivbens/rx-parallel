@@ -37,5 +37,14 @@ module.exports = {
                 'jest/prefer-expect-assertions': 0,
             },
         },
+        {
+            files: ['*.json'],
+            parser: 'jsonc-eslint-parser',
+            extends: ['plugin:jsonc/recommended-with-jsonc'],
+            rules: {
+                'deprecation/deprecation': 'off',
+                '@typescript-eslint/consistent-type-imports': 'off',
+            },
+        },
     ],
 }
