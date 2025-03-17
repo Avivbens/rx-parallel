@@ -43,7 +43,7 @@
     "license": "MIT",
     "dependencies": {
         "lodash": "^4.17.21",
-        "rxjs": "^7.8.1"
+        "rxjs": "^7.8.2"
     },
     "devDependencies": {
         "@commitlint/cli": "^18.4.3",
